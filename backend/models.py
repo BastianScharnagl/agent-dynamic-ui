@@ -1,26 +1,21 @@
-from sqlalchemy import Column, String, Float, JSON, DateTime, func
-from database import Base
-
-class ChatSession(Base):
-    __tablename__ = "chat_sessions"
-
-    id = Column(String, primary_key=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    # Speichert den serialisierten Gemini-Chatverlauf
-    history = Column(JSON, default=list)
-
-class Invoice(Base):
-    __tablename__ = "invoices"
-
-    id = Column(String, primary_key=True)
-    recipient = Column(String, nullable=False)
-    total_amount = Column(String, nullable=False)
-    status = Column(String, default="pending_approval")
-    items = Column(JSON, default=list)
-
-    approved_amount = Column(Float, nullable=True)
-    approval_date = Column(String, nullable=True)
-    cost_center = Column(String, nullable=True)
-    approval_notes = Column(String, nullable=True)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+SCHEMA_STATEMENTS = (
+    """
+    CREATE TABLE IF NOT EXISTS tools (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        name TEXT NOT NULL,
+        description TEXT,
+        parameters JSONB NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE
+    )
+    """,
+    "ALTER TABLE tools ALTER COLUMN id SET DEFAULT gen_random_uuid()::text",
+    "CREATE UNIQUE INDEX IF NOT EXISTS tools_name_unique ON tools (name)",
+    """
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+        id TEXT PRIMARY KEY,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ,
+        history JSONB NOT NULL DEFAULT '[]'::jsonb
+    )
+    """,
+)

@@ -19,7 +19,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/agent_db
-      - GEMINI_API_KEY=AQ.Ab8RN6Ig6ElqK3ak5RrpQ0cxujiQs9vTCCKhyWaIe17bztjv8A
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?GEMINI_API_KEY muss in .env gesetzt sein}
     depends_on:
       - postgres
 

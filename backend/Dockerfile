@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Systemabhängigkeiten für den Build von z.B. asyncpg/psycopg2
+# Systemabhängigkeiten für den Build von psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \

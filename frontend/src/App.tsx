@@ -5,7 +5,7 @@ import { AdvancedDynamicForm } from './components/AdvancedDynamicForm';
 const SESSION_ID = 'demo-session-1';
 
 export const App: React.FC = () => {
-  const [prompt, setPrompt] = useState('Zeige mir Rechnung INV-2026-99 und bereite die Freigabe vor.');
+  const [prompt, setPrompt] = useState('Erstelle eine neue Tabelle "users" mit den Spalten "id", "name" und "email".');
   const [messages, setMessages] = useState<string[]>([]);
   const [currentUI, setCurrentUI] = useState<UIRenderEvent | null>(null);
   const [status, setStatus] = useState<string>('bereit');
