@@ -1,6 +1,6 @@
 # Agent Dynamic UI
 
-Ein Demo-Projekt für einen KI-Agenten, der dynamische Tools aus PostgreSQL lädt und bei Bedarf interaktive Formulare an ein React-Frontend streamt. Backend und Frontend kommunizieren über eine FastAPI-SSE-Schnittstelle.
+Ein Demo-Projekt für einen KI-Agenten mit statisch im Backend definierten Datenbank- und UI-Tools. Bei Bedarf kann der Agent interaktive Formulare an ein React-Frontend streamen. Backend und Frontend kommunizieren über eine FastAPI-SSE-Schnittstelle.
 
 ## Inhalt
 
@@ -22,10 +22,8 @@ Ein Demo-Projekt für einen KI-Agenten, der dynamische Tools aus PostgreSQL läd
 
 Der Agent kann:
 
-- Tooldefinitionen aus der Tabelle `tools` in PostgreSQL lesen.
-- Datenbank- und Demo-Funktionen als Tools bereitstellen.
 - mit `render_custom_gui` Formulare erzeugen und als `UI_RENDER`-Event an das Frontend senden.
-- Tabellen mit angegebenen Spalten anlegen.
+- Tabellen mit angegebenen Spalten anlegen und Einträge hinzufügen.
 - Textantworten und Statusereignisse über eine Streaming-HTTP-Verbindung ausgeben.
 
 Das Projekt ist ein Prototyp. Die verfügbaren Agentenfunktionen und Sicherheitsgrenzen sind im Abschnitt [Sicherheit und bekannte Einschränkungen](#sicherheit-und-bekannte-einschränkungen) beschrieben.
@@ -42,7 +40,7 @@ FastAPI (backend/main.py)
         |
         +-- DatabaseToolAgent (backend/agent/loop.py)
         |       +-- Google Gen AI
-        |       +-- Tooldefinitionen aus PostgreSQL
+        |       +-- statische Funktionsdeklarationen
         |       +-- render_custom_gui
         |
         +-- psycopg2
@@ -51,10 +49,10 @@ FastAPI (backend/main.py)
            PostgreSQL
 ```
 
-- **Frontend:** React, TypeScript und Vite. `AdvancedDynamicForm` stellt die Formularfelder dar und validiert Eingaben.
+- **Frontend:** React, TypeScript und Vite. `DynamicForm` stellt die Formularfelder dar und validiert Eingaben.
 - **Backend:** FastAPI nimmt Chat- und Formularanfragen entgegen. `StreamingResponse` liefert die Agentenereignisse als Server-Sent Events.
-- **Agent:** `DatabaseToolAgent` verwaltet Chats pro Session-ID im Arbeitsspeicher, lädt Tools und führt empfangene Funktionsaufrufe aus.
-- **Datenbank:** PostgreSQL speichert dynamische Toolbeschreibungen sowie die beim Start angelegten Anwendungstabellen.
+- **Agent:** `DatabaseToolAgent` verwaltet Chats pro Session-ID im Arbeitsspeicher und führt die statisch deklarierten Funktionsaufrufe aus.
+- **Datenbank:** PostgreSQL speichert die Tabellen und Datensätze, die über die Datenbank-Tools angelegt werden.
 
 ## Voraussetzungen
 
@@ -93,7 +91,7 @@ Für die lokale Entwicklung ohne Docker zusätzlich:
    - FastAPI-Dokumentation: <http://localhost:8000/docs>
    - PostgreSQL: Port `5434` auf dem Host (im Compose-Netzwerk Port `5432`)
 
-Beim Backend-Start wird das Datenbankschema initialisiert. Falls das Wettertool noch nicht existiert, wird `get_current_weather` als Beispieldatensatz in `tools` angelegt.
+Das Backend initialisiert keine Tabellen und lädt keine Tooldefinitionen aus PostgreSQL. Die Datenbank-Tools können Tabellen auf Anforderung des Agenten anlegen.
 
 Logs anzeigen:
 
@@ -222,29 +220,18 @@ Das Backend kann folgende Ereignisse ausgeben:
 | `TEXT_MESSAGE` | Textausgabe des Agenten | `text` |
 | `RUN_COMPLETED` | Ende des aktuellen Durchlaufs | `sessionId` |
 
-Das Frontend liest den Stream, aktualisiert den Status, hängt Textnachrichten an und übergibt `component` aus einem `UI_RENDER`-Event an `AdvancedDynamicForm`.
+Das Frontend liest den Stream, aktualisiert den Status, hängt Textnachrichten an und übergibt `component` aus einem `UI_RENDER`-Event an `DynamicForm`.
 
 ## Tools
 
-### Dynamische Tools aus PostgreSQL
+Alle Tool-Schemas sind statisch im Backend definiert. Änderungen an Toolnamen, Beschreibungen, Parametern oder Implementierungen erfordern eine Codeänderung und einen Neustart des Backends. Einträge in einer etwaigen PostgreSQL-Tool-Registry werden nicht gelesen oder ausgeführt.
 
-Aktive Einträge in der Tabelle `tools` werden beim Anlegen eines Agent-Chats als Funktionsdeklarationen an das Modell übergeben. Ein Datensatz enthält unter anderem:
+### Verfügbare Tools
 
-- `name`: Toolname
-- `description`: Beschreibung für das Modell
-- `parameters`: JSON-Schema der Argumente
-- `is_active`: Aktivierungsstatus
-
-Die Anwendung legt beim Start das Beispieltool `get_current_weather` an, sofern es noch nicht in der Registry vorhanden ist. Die Implementierung ist aktuell ein Mock und liefert Beispieldaten, keine Live-Wetterdaten.
-
-### Eingebaute Tools
-
-Der Agent stellt außerdem Python-Funktionen zur Verfügung:
-
-- `select_tools`, `insert_tool`, `update_tool`, `delete_tool`: Registry-Verwaltung.
 - `select`, `insert`, `update`, `delete`: einfache Datenbankoperationen.
 - `create_table`: Tabelle mit einer expliziten Liste von Spalten anlegen.
 - `alter_table_add_column`: einer Tabelle eine Spalte hinzufügen.
+- `calculate_vat`: Umsatzsteuer und Bruttobetrag berechnen.
 - `render_custom_gui`: dynamisches Formular erzeugen.
 
 Für `create_table` muss das Modell die Spalten als Array unter `columns` übergeben, zum Beispiel:
@@ -258,7 +245,7 @@ Für `create_table` muss das Modell die Spalten als Array unter `columns` überg
 
 Die derzeitige Implementierung legt alle so angegebenen Spalten als `TEXT` an. Sie akzeptiert einfache SQL-Bezeichner und weist ungültige oder doppelte Spaltennamen zurück. Datentypen, Primärschlüssel und Constraints können über dieses Tool derzeit nicht konfiguriert werden.
 
-Die Ausgabe `Tools at indices [...] are not compatible with automatic function calling (AFC)` weist darauf hin, dass die gemischte Toolkonfiguration AFC deaktiviert. Der Agent enthält einen eigenen manuellen Funktionsaufrufpfad; die AFC-Warnung allein bedeutet daher nicht, dass die Datenbankfunktion ausgeführt wurde. Zur Diagnose sind der empfangene Funktionsname und dessen Argumente maßgeblich.
+Der Agent verarbeitet Funktionsaufrufe manuell. Zur Diagnose sind der empfangene Funktionsname und dessen Argumente maßgeblich.
 
 ## Dynamische Formulare
 
@@ -299,14 +286,9 @@ Felder können `required`, `default_value`, Validierungsregeln (`min`, `max`, `p
 
 ## Datenbank
 
-Beim Start führt das Backend die `CREATE TABLE IF NOT EXISTS`- und Indexanweisungen aus `backend/models.py` aus. Aktuell werden die folgenden Anwendungstabellen definiert:
+Das Backend führt beim Start keine Schema- oder Tabelleninitialisierung durch. Die von den Datenbank-Tools verarbeiteten Tabellen liegen in der über `DATABASE_URL` konfigurierten PostgreSQL-Datenbank. `create_table` legt Tabellen explizit an.
 
-- `tools`: dynamische Tool-Registry mit JSONB-Parametern.
-- `chat_sessions`: Schema für Chatmetadaten und Verlauf.
-
-Die laufenden Agent-Chats werden derzeit jedoch im Dictionary `DatabaseToolAgent.chats` im Backend-Prozess gehalten. `chat_sessions` wird in diesem Pfad nicht zur Wiederherstellung eines Gesprächs verwendet. Ein Prozessneustart löscht daher die aktiven Chatverläufe.
-
-Vom Agenten mit `create_table` angelegte Tabellen werden ebenfalls in derselben PostgreSQL-Datenbank erstellt.
+Die laufenden Agent-Chats werden im Dictionary `DatabaseToolAgent.chats` im Backend-Prozess gehalten. Ein Prozessneustart löscht daher die aktiven Chatverläufe.
 
 ## Fehlerbehebung
 
@@ -321,7 +303,7 @@ Prüfen:
 1. PostgreSQL läuft.
 2. `DATABASE_URL` enthält Host, Port, Datenbank und Benutzer der gewünschten Instanz.
 3. Bei Docker Compose wird der interne Service-Hostname verwendet; vom Host aus wird der veröffentlichte Host-Port verwendet.
-4. Die Datenbank ist erreichbar, bevor das Backend seine Startinitialisierung ausführt.
+4. Die Datenbank ist erreichbar, wenn ein Datenbank-Tool ausgeführt wird.
 
 ### Tabelle wird ohne Spalten erstellt oder das Tool schlägt fehl
 
@@ -341,4 +323,3 @@ Das Frontend zeigt ein Formular nur, wenn der Stream ein `UI_RENDER`-Event mit e
 - API-Schlüssel und Passwörter dürfen nicht in Quellcode, README-Beispiele oder versionierte Compose-Dateien eingetragen werden. Für einen echten Einsatz gehören Geheimnisse in eine sichere Laufzeitkonfiguration.
 - Der Chatstatus ist pro Backend-Prozess im Arbeitsspeicher gespeichert. Mehrere Worker, Neustarts und horizontale Skalierung sind damit nicht zuverlässig abgedeckt.
 - Der aktuelle Agent verarbeitet Funktionsaufrufe manuell. Bei mehreren gleichzeitig angeforderten Funktionen kann der Codepfad nur den ersten Aufruf bearbeiten.
-- Das Beispiel-Wettertool ist ein Mock.

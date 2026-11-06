@@ -1,1 +1,8 @@
 .env
+__pycache__/
+*/pycache/
+node_modules/
+*/node_modules/
+*/package-lock.json
+*.log
+*.pyc

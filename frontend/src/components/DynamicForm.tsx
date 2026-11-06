@@ -33,7 +33,7 @@ export interface DynamicGuiPayload {
   submit_label: string;
 }
 
-export const AdvancedDynamicForm: React.FC<{
+export const DynamicForm: React.FC<{
   data: DynamicGuiPayload;
   onSubmit: (formData: Record<string, any>) => void;
 }> = ({ data, onSubmit }) => {

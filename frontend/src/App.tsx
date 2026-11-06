@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { UIRenderEvent } from './types/agui';
-import { AdvancedDynamicForm } from './components/AdvancedDynamicForm';
+import { DynamicForm } from './components/DynamicForm';
 
 const SESSION_ID = 'demo-session-1';
 
 export const App: React.FC = () => {
-  const [prompt, setPrompt] = useState('Erstelle eine neue Tabelle "users" mit den Spalten "id", "name" und "email".');
+  const [prompt, setPrompt] = useState('Erstelle eine neue Tabelle.');
   const [messages, setMessages] = useState<string[]>([]);
   const [currentUI, setCurrentUI] = useState<UIRenderEvent | null>(null);
   const [status, setStatus] = useState<string>('bereit');
@@ -63,6 +65,12 @@ export const App: React.FC = () => {
   return (
     <div style={{ maxWidth: '680px', margin: '40px auto', fontFamily: 'system-ui, sans-serif', padding: '0 16px' }}>
       <h2>Autonomes Generative-UI Cockpit</h2>
+      <p style={{ color: '#475569', lineHeight: 1.5 }}>
+        Beispiele: Erstelle eine Kundentabelle, füge Kunden hinzu, zeige oder
+        ändere Datensätze, lösche Einträge, ergänze Tabellenspalten oder lass
+        dir ein dynamisches Formular erstellen. Neue Tabellenspalten werden
+        derzeit als TEXT angelegt.
+      </p>
       <div style={{ marginBottom: '16px', color: '#64748b' }}>Status: <strong>{status}</strong></div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
@@ -80,18 +88,17 @@ export const App: React.FC = () => {
       </div>
 
       <div>
-        {messages.map((m, idx) => (
-          <div key={idx} style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', marginBottom: '8px', border: '1px solid #e2e8f0' }}>
-            {m}
-          </div>
-        ))}
-
         {currentUI && (
-          <AdvancedDynamicForm
+          <DynamicForm
             data={currentUI.component}
             onSubmit={handleFormSubmit}
           />
         )}
+        {[...messages].reverse().map((m, idx) => (
+          <div key={idx} style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', marginBottom: '8px', border: '1px solid #e2e8f0', overflowWrap: 'anywhere' }}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m}</ReactMarkdown>
+          </div>
+        ))}
       </div>
     </div>
   );
