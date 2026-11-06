@@ -12,6 +12,14 @@ export const App: React.FC = () => {
   const [currentUI, setCurrentUI] = useState<UIRenderEvent | null>(null);
   const [status, setStatus] = useState<string>('bereit');
 
+  const sendPrompt = () => {
+    const message = prompt.trim();
+    if (!message) return;
+
+    setPrompt('');
+    void executeStream({ prompt: message });
+  };
+
   const executeStream = async (payload: { prompt?: string; toolResponse?: any }) => {
     setStatus('Verarbeite...');
     const response = await fetch('http://localhost:8000/api/agent/stream', {
@@ -66,7 +74,7 @@ export const App: React.FC = () => {
     <div style={{ maxWidth: '680px', margin: '40px auto', fontFamily: 'system-ui, sans-serif', padding: '0 16px' }}>
       <h2>Autonomes Generative-UI Cockpit</h2>
       <p style={{ color: '#475569', lineHeight: 1.5 }}>
-        Beispiele: Erstelle eine Kundentabelle, füge Kunden hinzu, zeige oder
+        Beispiele: Erstelle eine Tabelle, füge Kunden hinzu, zeige oder
         ändere Datensätze, lösche Einträge, ergänze Tabellenspalten oder lass
         dir ein dynamisches Formular erstellen. Neue Tabellenspalten werden
         derzeit als TEXT angelegt.
@@ -78,9 +86,12 @@ export const App: React.FC = () => {
           style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') sendPrompt();
+          }}
         />
         <button
-          onClick={() => executeStream({ prompt })}
+          onClick={sendPrompt}
           style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
         >
           Senden
